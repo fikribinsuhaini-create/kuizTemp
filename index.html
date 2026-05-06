@@ -1,0 +1,374 @@
+<!doctype html>
+<html lang="ms-Arab" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Kuiz Interaktif (Isi Tempat Kosong)</title>
+    <style>
+      :root {
+        --bg: #f3f4f6;
+        --card: #ffffff;
+        --text: #111827;
+        --muted: #6b7280;
+        --btn: #111827;
+        --btnText: #ffffff;
+        --btnDisabled: #9ca3af;
+        --wrong: #ef4444;
+        --right: #22c55e;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        transition: background-color 180ms ease;
+      }
+      .wrap {
+        max-width: 980px;
+        margin: 0 auto;
+        padding: 24px 16px 40px;
+      }
+      .title {
+        margin: 0 0 12px;
+        font-size: 28px;
+        font-weight: 800;
+        letter-spacing: 0.2px;
+      }
+      .sub {
+        margin: 0 0 18px;
+        color: var(--muted);
+        font-size: 16px;
+        line-height: 1.4;
+      }
+      .card {
+        background: var(--card);
+        border-radius: 18px;
+        padding: 18px 18px 16px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+        border: 1px solid rgba(17, 24, 39, 0.06);
+      }
+      .question {
+        font-size: 30px;
+        line-height: 1.6;
+        margin: 0 0 10px;
+      }
+      .blank {
+        display: inline-block;
+        min-width: 140px;
+        padding: 6px 10px;
+        margin: 0 4px;
+        border-radius: 12px;
+        border: 2px dashed rgba(17, 24, 39, 0.25);
+        background: rgba(17, 24, 39, 0.03);
+        text-align: center;
+        font-weight: 800;
+      }
+      .blank.filled {
+        border-style: solid;
+        background: rgba(17, 24, 39, 0.06);
+      }
+      .status {
+        margin: 12px 0 0;
+        font-size: 26px;
+        font-weight: 900;
+        text-align: center;
+        padding: 10px 12px;
+        border-radius: 14px;
+        background: rgba(17, 24, 39, 0.04);
+      }
+      .status.ok {
+        background: rgba(34, 197, 94, 0.16);
+      }
+      .status.bad {
+        background: rgba(239, 68, 68, 0.16);
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 16px;
+      }
+      .btn {
+        font-size: 28px;
+        font-weight: 900;
+        padding: 18px 16px;
+        border-radius: 16px;
+        border: 0;
+        background: var(--btn);
+        color: var(--btnText);
+        cursor: pointer;
+        box-shadow: 0 10px 18px rgba(17, 24, 39, 0.18);
+      }
+      .btn:active {
+        transform: translateY(1px);
+      }
+      .btn[disabled] {
+        background: var(--btnDisabled);
+        cursor: not-allowed;
+        box-shadow: none;
+      }
+      .row {
+        display: flex;
+        gap: 12px;
+        justify-content: center;
+        margin-top: 14px;
+        flex-wrap: wrap;
+      }
+      .btn-secondary {
+        font-size: 18px;
+        font-weight: 800;
+        padding: 10px 14px;
+        border-radius: 999px;
+        border: 2px solid rgba(17, 24, 39, 0.18);
+        background: transparent;
+        cursor: pointer;
+      }
+      .hint {
+        margin: 14px 0 0;
+        text-align: center;
+        color: var(--muted);
+        font-size: 14px;
+      }
+      @media (max-width: 720px) {
+        .question {
+          font-size: 26px;
+        }
+        .grid {
+          grid-template-columns: 1fr;
+        }
+        .btn {
+          font-size: 26px;
+        }
+        .blank {
+          min-width: 120px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1 class="title">سيسٹم کويز: ايسي تمڤت کوسوڠ</h1>
+      <p class="sub">کليک ڤيليهن جاواڤن اونتوق مڠيسي تمڤت کوسوڠ. ستياڤ ڤيليهن هانيا بوليه ديڤيليه ساکلي.</p>
+
+      <div class="card">
+        <p class="question" aria-label="Soalan">
+          منجاݢ کبرسيهن ديري اياله منجاك كبر سيهن
+          <span class="blank" data-blank="0">____</span>
+          دان
+          <span class="blank" data-blank="1">____</span>
+          درقد نجيس دان
+          <span class="blank" data-blank="2">____</span>
+        </p>
+
+        <div id="status" class="status" role="status" aria-live="polite">سيلکن ڤيليه جاواڤن.</div>
+
+        <div class="grid" aria-label="Pilihan jawapan">
+          <button class="btn option" data-answer="ککوتورن">ککوتورن</button>
+          <button class="btn option" data-answer="ڤاکاين">ڤاکاين</button>
+          <button class="btn option" data-answer="توبوه بادن">توبوه بادن</button>
+          <button class="btn option" data-answer="سلوار">سلوار</button>
+        </div>
+
+        <div class="row">
+          <button id="reset" class="btn-secondary" type="button">چوبا سمولا</button>
+        </div>
+
+        <p class="hint">
+          ڤندالين: ڤرلون سواتو کليک اونتوق مبنرکن ڤلاي بک (کرانا ڤرلو "user gesture").
+        </p>
+      </div>
+    </div>
+
+    <!-- Audio (dibina secara automatik dengan nada ringkas; tiada fail luar diperlukan) -->
+    <audio id="audioBetul" preload="auto"></audio>
+    <audio id="audioSalah" preload="auto"></audio>
+
+    <script>
+      // ====== Data kuiz ======
+      const CORRECT = new Set(["ککوتورن", "ڤاکاين", "توبوه بادن"]);
+      const WRONG = "سلوار";
+
+      // ====== Elemen UI ======
+      const statusEl = document.getElementById("status");
+      const blankEls = Array.from(document.querySelectorAll(".blank"));
+      const optionBtns = Array.from(document.querySelectorAll(".option"));
+      const resetBtn = document.getElementById("reset");
+      const audioBetul = document.getElementById("audioBetul");
+      const audioSalah = document.getElementById("audioSalah");
+
+      // ====== State ======
+      let selected = new Set(); // simpan jawapan yang pernah dipilih
+      let wrongSelected = false;
+
+      function setBg(mode) {
+        // mode: "default" | "wrong" | "right"
+        if (mode === "wrong") document.body.style.backgroundColor = "rgba(239, 68, 68, 0.22)";
+        else if (mode === "right") document.body.style.backgroundColor = "rgba(34, 197, 94, 0.22)";
+        else document.body.style.backgroundColor = "";
+      }
+
+      function setStatus(text, kind) {
+        statusEl.textContent = text;
+        statusEl.classList.toggle("ok", kind === "ok");
+        statusEl.classList.toggle("bad", kind === "bad");
+      }
+
+      function nextBlankIndex() {
+        return blankEls.findIndex((el) => !el.classList.contains("filled"));
+      }
+
+      function fillNextBlank(answer) {
+        const idx = nextBlankIndex();
+        if (idx === -1) return;
+        blankEls[idx].textContent = answer;
+        blankEls[idx].classList.add("filled");
+      }
+
+      function updateEndState() {
+        // Jika salah pernah dipilih -> Salah!
+        if (wrongSelected) {
+          setBg("wrong");
+          setStatus("Salah!", "bad");
+          return;
+        }
+
+        // Jika semua jawapan betul (3) sudah dipilih -> Betul!
+        const allCorrectSelected = Array.from(CORRECT).every((a) => selected.has(a));
+        if (allCorrectSelected) {
+          setBg("right");
+          setStatus("Betul!", "ok");
+          // Kunci baki butang selepas berjaya
+          optionBtns.forEach((b) => (b.disabled = true));
+          return;
+        }
+
+        setBg("default");
+        setStatus("Teruskan pilih jawapan...", "");
+      }
+
+      // ====== Audio helpers (buat WAV ringkas secara lokal) ======
+      function makeToneWavBlobUrl({ freqHz, durationMs, type }) {
+        // type: "sine" | "square"
+        const sampleRate = 44100;
+        const samples = Math.max(1, Math.floor((durationMs / 1000) * sampleRate));
+        const bytesPerSample = 2; // 16-bit PCM
+        const blockAlign = bytesPerSample * 1;
+        const byteRate = sampleRate * blockAlign;
+        const dataSize = samples * blockAlign;
+
+        const buffer = new ArrayBuffer(44 + dataSize);
+        const view = new DataView(buffer);
+        let o = 0;
+
+        function wStr(s) {
+          for (let i = 0; i < s.length; i++) view.setUint8(o++, s.charCodeAt(i));
+        }
+        function wU32(v) {
+          view.setUint32(o, v, true);
+          o += 4;
+        }
+        function wU16(v) {
+          view.setUint16(o, v, true);
+          o += 2;
+        }
+
+        // RIFF header
+        wStr("RIFF");
+        wU32(36 + dataSize);
+        wStr("WAVE");
+
+        // fmt chunk
+        wStr("fmt ");
+        wU32(16);
+        wU16(1); // PCM
+        wU16(1); // channels
+        wU32(sampleRate);
+        wU32(byteRate);
+        wU16(blockAlign);
+        wU16(16); // bits
+
+        // data chunk
+        wStr("data");
+        wU32(dataSize);
+
+        // samples
+        const fadeSamples = Math.min(Math.floor(sampleRate * 0.01), Math.floor(samples / 10)); // 10ms fade
+        const amp = 0.35;
+        for (let i = 0; i < samples; i++) {
+          const t = i / sampleRate;
+          let x = Math.sin(2 * Math.PI * freqHz * t);
+          if (type === "square") x = x >= 0 ? 1 : -1;
+          let a = amp;
+          if (i < fadeSamples) a *= i / fadeSamples;
+          if (i > samples - fadeSamples) a *= (samples - i) / fadeSamples;
+          const s16 = Math.max(-1, Math.min(1, x)) * a;
+          view.setInt16(o, Math.floor(s16 * 32767), true);
+          o += 2;
+        }
+
+        const blob = new Blob([buffer], { type: "audio/wav" });
+        return URL.createObjectURL(blob);
+      }
+
+      function playAudio(el) {
+        // Pastikan bunyi dimainkan setiap kali klik
+        try {
+          el.currentTime = 0;
+          const p = el.play();
+          if (p && typeof p.catch === "function") p.catch(() => {});
+        } catch (_) {}
+      }
+
+      // Sediakan bunyi (tiada download / link luar)
+      audioBetul.src = makeToneWavBlobUrl({ freqHz: 880, durationMs: 160, type: "sine" });
+      audioSalah.src = makeToneWavBlobUrl({ freqHz: 220, durationMs: 200, type: "square" });
+
+      // ====== Interaksi pilihan jawapan ======
+      optionBtns.forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const answer = btn.dataset.answer;
+          if (!answer) return;
+          if (btn.disabled) return;
+
+          // 1) Setiap pilihan hanya boleh dipilih sekali
+          btn.disabled = true;
+
+          // 2) Masukkan jawapan ke tempat kosong (automatik)
+          fillNextBlank(answer);
+          selected.add(answer);
+
+          // 3) Semak + bunyi setiap kali dipilih
+          const isWrongNow = answer === WRONG;
+          if (isWrongNow) {
+            wrongSelected = true;
+            setStatus("Salah!", "bad");
+            setBg("wrong");
+            playAudio(audioSalah);
+            return; // kekalkan state salah
+          }
+
+          playAudio(audioBetul);
+          updateEndState();
+        });
+      });
+
+      // ====== Reset ======
+      resetBtn.addEventListener("click", () => {
+        selected = new Set();
+        wrongSelected = false;
+
+        blankEls.forEach((b) => {
+          b.textContent = "____";
+          b.classList.remove("filled");
+        });
+        optionBtns.forEach((b) => (b.disabled = false));
+
+        setBg("default");
+        setStatus("سيلکن ڤيليه جاواڤن.", "");
+      });
+    </script>
+  </body>
+</html>
