@@ -25,6 +25,29 @@
         background: var(--bg);
         color: var(--text);
         transition: background-color 180ms ease;
+        position: relative;
+        --overlayBg: transparent;
+      }
+      /* Background image layer */
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background: linear-gradient(rgba(243, 244, 246, 0.88), rgba(243, 244, 246, 0.88)),
+          url("assets/bg.jpg");
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        z-index: -2;
+      }
+      /* Color feedback overlay (wrong/right) */
+      body::after {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background: var(--overlayBg);
+        transition: background-color 180ms ease;
+        z-index: -1;
       }
       .wrap {
         max-width: 980px;
@@ -96,7 +119,7 @@
       }
       .grid {
         display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 12px;
         margin-top: 16px;
       }
@@ -155,13 +178,18 @@
           font-size: 26px;
         }
         .grid {
-          grid-template-columns: 1fr;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
         }
         .btn {
           font-size: 26px;
         }
         .blank {
           min-width: 120px;
+        }
+      }
+      @media (max-width: 460px) {
+        .grid {
+          grid-template-columns: 1fr;
         }
       }
     </style>
@@ -203,6 +231,14 @@
             سلوار
             <span class="rumi">seluar</span>
           </button>
+          <button class="btn option" data-answer="کسلامتن">
+            کسلامتن
+            <span class="rumi">keselamatan</span>
+          </button>
+          <button class="btn option" data-answer="کوچيڠ">
+            کوچيڠ
+            <span class="rumi">kucing</span>
+          </button>
         </div>
 
         <div class="row">
@@ -223,7 +259,6 @@
     <script>
       // ====== Data kuiz ======
       const CORRECT = new Set(["ککوتورن", "ڤاکاين", "توبوه بادن"]);
-      const WRONG = "سلوار";
 
       // ====== Elemen UI ======
       const statusEl = document.getElementById("status");
@@ -240,9 +275,9 @@
 
       function setBg(mode) {
         // mode: "default" | "wrong" | "right"
-        if (mode === "wrong") document.body.style.backgroundColor = "rgba(239, 68, 68, 0.22)";
-        else if (mode === "right") document.body.style.backgroundColor = "rgba(34, 197, 94, 0.22)";
-        else document.body.style.backgroundColor = "";
+        if (mode === "wrong") document.body.style.setProperty("--overlayBg", "rgba(239, 68, 68, 0.24)");
+        else if (mode === "right") document.body.style.setProperty("--overlayBg", "rgba(34, 197, 94, 0.24)");
+        else document.body.style.setProperty("--overlayBg", "transparent");
       }
 
       function setStatus(text, kind) {
@@ -435,7 +470,18 @@
       // Sediakan bunyi (tiada download / link luar)
       audioBetul.src = makeToneWavBlobUrl({ freqHz: 880, durationMs: 160, type: "sine" });
       audioSalah.src = makeToneWavBlobUrl({ freqHz: 220, durationMs: 200, type: "square" });
-      audioTepuk.src = makeApplauseWavBlobUrl({ durationMs: 900 });
+      // Tepuk tangan: guna audio sendiri dulu, fallback online, last fallback lokal-gen
+      const applauseSources = [
+        "assets/tepuktangan.wav",
+        "https://assets.mixkit.co/sfx/preview/mixkit-small-group-cheering-and-applause-518.mp3",
+      ];
+      let applauseIdx = 0;
+      audioTepuk.src = applauseSources[applauseIdx];
+      audioTepuk.addEventListener("error", () => {
+        applauseIdx++;
+        if (applauseIdx < applauseSources.length) audioTepuk.src = applauseSources[applauseIdx];
+        else audioTepuk.src = makeApplauseWavBlobUrl({ durationMs: 2200 });
+      });
 
       // ====== Interaksi pilihan jawapan ======
       optionBtns.forEach((btn) => {
@@ -452,7 +498,7 @@
           selected.add(answer);
 
           // 3) Semak + bunyi setiap kali dipilih
-          const isWrongNow = answer === WRONG;
+          const isWrongNow = !CORRECT.has(answer);
           if (isWrongNow) {
             wrongSelected = true;
             setStatus("Salah!", "bad");
