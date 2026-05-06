@@ -49,6 +49,15 @@
         transition: background-color 180ms ease;
         z-index: -1;
       }
+      /* Confetti canvas overlay */
+      #confetti {
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 50;
+      }
       .wrap {
         max-width: 980px;
         margin: 0 auto;
@@ -251,6 +260,9 @@
       </div>
     </div>
 
+    <!-- Confetti overlay (tiada resource luar) -->
+    <canvas id="confetti" aria-hidden="true"></canvas>
+
     <!-- Audio (dibina secara automatik dengan nada ringkas; tiada fail luar diperlukan) -->
     <audio id="audioBetul" preload="auto"></audio>
     <audio id="audioSalah" preload="auto"></audio>
@@ -268,10 +280,13 @@
       const audioBetul = document.getElementById("audioBetul");
       const audioSalah = document.getElementById("audioSalah");
       const audioTepuk = document.getElementById("audioTepuk");
+      const confettiCanvas = document.getElementById("confetti");
+      const confettiCtx = confettiCanvas.getContext("2d");
 
       // ====== State ======
       let selected = new Set(); // simpan jawapan yang pernah dipilih
       let wrongSelected = false;
+      let confettiRunning = false;
 
       function setBg(mode) {
         // mode: "default" | "wrong" | "right"
@@ -301,7 +316,7 @@
         // Jika salah pernah dipilih -> Salah!
         if (wrongSelected) {
           setBg("wrong");
-          setStatus("Salah!", "bad");
+          setStatus("Salah", "bad");
           return;
         }
 
@@ -309,7 +324,7 @@
         const allCorrectSelected = Array.from(CORRECT).every((a) => selected.has(a));
         if (allCorrectSelected) {
           setBg("right");
-          setStatus("Betul!", "ok");
+          setStatus("Betul", "ok");
           // Kunci baki butang selepas berjaya
           optionBtns.forEach((b) => (b.disabled = true));
           return;
@@ -467,6 +482,83 @@
         } catch (_) {}
       }
 
+      // ====== Confetti (tiada library / resource) ======
+      function resizeConfetti() {
+        const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+        confettiCanvas.width = Math.floor(window.innerWidth * dpr);
+        confettiCanvas.height = Math.floor(window.innerHeight * dpr);
+        confettiCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
+      window.addEventListener("resize", resizeConfetti);
+      resizeConfetti();
+
+      function fireConfetti() {
+        if (confettiRunning) return;
+        confettiRunning = true;
+
+        const colors = ["#22c55e", "#3b82f6", "#f59e0b", "#ef4444", "#a855f7", "#06b6d4"];
+        const W = window.innerWidth;
+        const H = window.innerHeight;
+        const pieces = [];
+        const count = 180;
+        const gravity = 900; // px/s^2
+        const drag = 0.985;
+
+        for (let i = 0; i < count; i++) {
+          const fromLeft = i % 2 === 0;
+          pieces.push({
+            x: fromLeft ? -20 : W + 20,
+            y: Math.random() * (H * 0.55),
+            vx: (fromLeft ? 1 : -1) * (380 + Math.random() * 420),
+            vy: -200 + Math.random() * -380,
+            r: 2 + Math.random() * 5,
+            w: 6 + Math.random() * 8,
+            h: 8 + Math.random() * 12,
+            rot: Math.random() * Math.PI,
+            vr: (-4 + Math.random() * 8),
+            color: colors[(Math.random() * colors.length) | 0],
+            life: 0,
+          });
+        }
+
+        let last = performance.now();
+        const durationMs = 2400;
+        const start = last;
+
+        function tick(now) {
+          const dt = Math.min(0.033, (now - last) / 1000);
+          last = now;
+
+          confettiCtx.clearRect(0, 0, W, H);
+
+          for (const p of pieces) {
+            p.life += dt;
+            p.vy += gravity * dt;
+            p.vx *= Math.pow(drag, dt * 60);
+            p.vy *= Math.pow(drag, dt * 60);
+            p.x += p.vx * dt;
+            p.y += p.vy * dt;
+            p.rot += p.vr * dt;
+
+            confettiCtx.save();
+            confettiCtx.translate(p.x, p.y);
+            confettiCtx.rotate(p.rot);
+            confettiCtx.fillStyle = p.color;
+            confettiCtx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+            confettiCtx.restore();
+          }
+
+          if (now - start < durationMs) {
+            requestAnimationFrame(tick);
+          } else {
+            confettiCtx.clearRect(0, 0, W, H);
+            confettiRunning = false;
+          }
+        }
+
+        requestAnimationFrame(tick);
+      }
+
       // Sediakan bunyi (tiada download / link luar)
       audioBetul.src = makeToneWavBlobUrl({ freqHz: 880, durationMs: 160, type: "sine" });
       audioSalah.src = makeToneWavBlobUrl({ freqHz: 220, durationMs: 200, type: "square" });
@@ -501,7 +593,7 @@
           const isWrongNow = !CORRECT.has(answer);
           if (isWrongNow) {
             wrongSelected = true;
-            setStatus("Salah!", "bad");
+            setStatus("Salah", "bad");
             setBg("wrong");
             playAudio(audioSalah);
             return; // kekalkan state salah
@@ -509,7 +601,10 @@
 
           // Betul: bunyi "betul" untuk pilihan biasa, tepuk tangan hanya bila lengkap semua betul
           const allCorrectSelectedNow = Array.from(CORRECT).every((a) => selected.has(a));
-          if (allCorrectSelectedNow) playAudio(audioTepuk);
+          if (allCorrectSelectedNow) {
+            playAudio(audioTepuk);
+            fireConfetti();
+          }
           else playAudio(audioBetul);
           updateEndState();
         });
@@ -519,6 +614,8 @@
       resetBtn.addEventListener("click", () => {
         selected = new Set();
         wrongSelected = false;
+        confettiCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+        confettiRunning = false;
 
         blankEls.forEach((b) => {
           b.textContent = "____";
